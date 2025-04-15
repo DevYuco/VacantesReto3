@@ -20,7 +20,7 @@ public interface VacanteRepository extends JpaRepository<Vacante, Integer>{
 	
 	@Query("select v from Vacante v where v.estatus = 'CREADA'")
 	List<Vacante> findByCreada();
-
+	
 	@Query("select v from Vacante v where v.idVacante = ?1")
 	public Vacante buscarPorId (int idVacante);
 	
