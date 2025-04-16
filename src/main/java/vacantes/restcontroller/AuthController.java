@@ -1,9 +1,11 @@
 package vacantes.restcontroller;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -15,6 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 import vacantes.jwt.JwtTokenUtil;
 import vacantes.modelo.dto.LoginRequest;
 import vacantes.modelo.dto.UsuarioDto;
+import vacantes.modelo.dto.UsuarioRegistroDto;
+import vacantes.modelo.entities.Rol;
 import vacantes.modelo.entities.Usuario;
 import vacantes.modelo.service.UsuarioService;
 
@@ -79,5 +83,25 @@ public class AuthController {
         }
 
         return ResponseEntity.status(403).body("Invalid refresh token");
+    }
+    @PostMapping("/registro")
+    public ResponseEntity<?> registrarUsuario(@RequestBody UsuarioRegistroDto dto) {
+    	System.out.println(dto.getEmail());
+        if (usuarioService.buscarPorEmailEntidad(dto.getEmail()) != null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("mensaje","Usuario creado correctamente"));
+        }
+
+        Usuario nuevoUsuario = Usuario.builder()
+            .email(dto.getEmail())
+            .nombre(dto.getNombre())
+            .apellidos(dto.getApellidos())
+            .password("{noop}" + dto.getPassword()) // Puedes usar encoder si lo tienes
+            .fechaRegistro(new Date())
+            .rol(Rol.CLIENTE) // Asumiendo que tienes CLIENTE
+            .enabled(1)
+            .build();
+
+        usuarioService.insertUno(nuevoUsuario);
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("mensaje","Usuario creado correctamente"));
     }
 }

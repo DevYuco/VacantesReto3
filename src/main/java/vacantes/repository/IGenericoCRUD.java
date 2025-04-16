@@ -2,8 +2,9 @@ package vacantes.repository;
 
 import java.util.List;
 
-import org.springframework.stereotype.Service;
-@Service
+import org.springframework.stereotype.Repository;
+
+@Repository
 public interface IGenericoCRUD <Elemento, Indice>{
 	List<Elemento> buscarTodo ();
 	Elemento buscarUno(Indice indx);

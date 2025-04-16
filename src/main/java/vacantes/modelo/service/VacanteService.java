@@ -1,14 +1,10 @@
 package vacantes.modelo.service;
 
 import java.util.List;
-
-import org.springframework.stereotype.Service;
-
 import vacantes.modelo.dto.VacanteListasDto;
 import vacantes.modelo.entities.Vacante;
 import vacantes.repository.IGenericoCRUD;
 
-@Service
 public interface VacanteService extends IGenericoCRUD<Vacante, Integer>{
 	Vacante insertVacante(Vacante vacante);
 	VacanteListasDto verVacante(int idVacante);

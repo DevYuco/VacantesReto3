@@ -2,6 +2,7 @@ package vacantes.restcontroller;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -73,10 +75,14 @@ public class UsuarioRestController {
                 })
                 .collect(Collectors.toList());
 
-            return new ResponseEntity<>(vacanteDto, HttpStatus.OK);
+            return ResponseEntity.ok(vacanteDto);
         }
-        return new ResponseEntity<>("No se han encontrado vacantes asociadas", HttpStatus.OK);
+
+        // Mensaje como JSON
+        Map<String, String> response = Map.of("mensaje", "No se han encontrado vacantes asociadas");
+        return ResponseEntity.ok(response);
     }
+
 
     @GetMapping("/vacantes/{id}")
     public ResponseEntity<VacanteListasDto> verDetallesDeVacante(@PathVariable int id) {
@@ -135,10 +141,15 @@ public class UsuarioRestController {
                     return dto.convertToSolicitudDto(solicitud);
                 })
                 .collect(Collectors.toList());
-            return new ResponseEntity<>(solicitudDto, HttpStatus.OK);
+
+            return ResponseEntity.ok(solicitudDto);
         }
-        return new ResponseEntity<>("No se encuentran vacantes disponibles", HttpStatus.BAD_REQUEST);
+
+        //Esto ahora devuelve un JSON en vez de texto plano
+        Map<String, String> response = Map.of("mensaje", "No se encuentran vacantes disponibles");
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
+
 
     @PostMapping("/postularVacante/{idVacante}")
     public ResponseEntity<?> postularVacante(@PathVariable int idVacante, @RequestBody SolicitudAltaDto altaDto, HttpServletRequest request) {
@@ -149,20 +160,47 @@ public class UsuarioRestController {
         Vacante vacanteSolicitud = vacanteService.buscarUno(idVacante);
 
         if (vacanteSolicitud == null) {
-            return new ResponseEntity<>("La vacante no existe", HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("mensaje", "La vacante no existe"));
+        }
+        //Validación: comprobar si ya existe una solicitud para esta vacante por el mismo usuario
+        Solicitud existente = solicitudService.buscarSolicitudPorIdVacanteYEmail(idVacante, email);
+        if (existente != null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("mensaje", "Ya has solicitado esta vacante anteriormente"));
+        }
+        Solicitud solicitudPostulante = new Solicitud();
+        solicitudPostulante.setUsuario(usuarioPostulante);
+        solicitudPostulante.setVacante(vacanteSolicitud);
+        solicitudPostulante.setFecha(new Date());
+        solicitudPostulante.setArchivo(altaDto.getArchivo());
+        solicitudPostulante.setComentarios(altaDto.getComentarios());
+        solicitudPostulante.setEstado(false);
+        solicitudPostulante.setCurriculum(altaDto.getCurriculum());
+
+        solicitudService.insertUno(solicitudPostulante);
+
+        return ResponseEntity.ok(Map.of("mensaje", "Solicitud creada con éxito"));
+    }
+
+    
+    @DeleteMapping("/solicitud/eliminar/{id}")
+    public ResponseEntity<?> eliminarSolicitud(@PathVariable int id) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        if (!solicitudService.esDueñoDeSolicitud(email, id)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("mensaje", "No tienes permiso para eliminar esta solicitud."));
+        }
+
+        int eliminado = solicitudService.eliminarUno(id);
+
+        if (eliminado > 0) {
+            return ResponseEntity.ok(Map.of("mensaje", "Solicitud eliminada correctamente."));
         } else {
-            Solicitud solicitudPostulante = new Solicitud();
-
-            solicitudPostulante.setUsuario(usuarioPostulante);
-            solicitudPostulante.setVacante(vacanteSolicitud);
-            solicitudPostulante.setFecha(new Date());
-            solicitudPostulante.setArchivo(altaDto.getArchivo());
-            solicitudPostulante.setComentarios(altaDto.getComentarios());
-            solicitudPostulante.setEstado(false);
-            solicitudPostulante.setCurriculum(altaDto.getCurriculum());
-
-            solicitudService.insertUno(solicitudPostulante);
-            return new ResponseEntity<>("Solicitud creada con éxito", HttpStatus.OK);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("mensaje", "No se pudo eliminar la solicitud."));
         }
     }
+
 }

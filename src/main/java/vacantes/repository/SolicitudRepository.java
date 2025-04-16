@@ -22,4 +22,7 @@ public interface SolicitudRepository extends JpaRepository<Solicitud, Integer>{
 	
 	@Query ("select s from Solicitud s where s.vacante.empresa.idEmpresa =?1")
 	public List<Solicitud> findSolicitudByIdEmpresa(int idEmpresa);
+	
+	@Query("SELECT COUNT(s) > 0 FROM Solicitud s WHERE s.usuario.email = ?1 AND s.idSolicitud = ?2")
+	boolean comprobarDueñoSolicitud(String email, int idSolicitud); 
 }

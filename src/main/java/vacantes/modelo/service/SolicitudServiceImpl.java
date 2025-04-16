@@ -83,4 +83,10 @@ public class SolicitudServiceImpl implements SolicitudService{
 	    return solicitudRepository.findSolicitudByIdEmpresa(idEmpresa);
 	}
 
+	@Override
+	public boolean esDueñoDeSolicitud(String email, int idSolicitud) {
+		
+		return solicitudRepository.comprobarDueñoSolicitud(email, idSolicitud);
+	}
+
 }
